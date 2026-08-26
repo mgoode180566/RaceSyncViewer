@@ -1,247 +1,339 @@
-import { useMemo, useState } from 'react'
+import {
+  useMemo,
+  useState,
+} from 'react'
 
 import {
+  Box,
   Card,
   CardContent,
   Chip,
-  Divider,
   Grid,
-  List,
-  ListItemButton,
-  ListItemText,
   Stack,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material'
+
+import MapIcon from '@mui/icons-material/Map'
+import SatelliteAltIcon from '@mui/icons-material/SatelliteAlt'
 
 import type {
   Lap,
   ParsedSession,
 } from '../types'
 
-import { TrackMap } from './TrackMap'
-import { TelemetryChart } from './TelemetryChart'
+import {
+  LapSelector,
+} from './LapSelector'
+
+import {
+  TrackMap,
+} from './TrackMap'
+
+import {
+  SatelliteMap,
+} from './SatelliteMap'
+
+import {
+  TelemetryChart,
+} from './TelemetryChart'
 
 
-// ============================================================
-// FORMAT LAP TIME
-// ============================================================
-
-function formatLapTime(seconds: number)
-{
+function formatLapTime(
+  seconds: number,
+): string {
   const minutes =
-    Math.floor(seconds / 60)
+    Math.floor(
+      seconds /
+      60,
+    )
 
   const remaining =
     seconds -
-    minutes * 60
+    minutes *
+    60
 
-  return `${minutes}:${remaining
-    .toFixed(3)
-    .padStart(6, '0')}`
+  return (
+    `${minutes}:` +
+    remaining
+      .toFixed(
+        3,
+      )
+      .padStart(
+        6,
+        '0',
+      )
+  )
 }
 
 
-// ============================================================
-// FORMAT SESSION DURATION
-// ============================================================
-
-function formatDuration(seconds: number)
-{
+function formatDuration(
+  seconds: number,
+): string {
   const minutes =
-    Math.floor(seconds / 60)
+    Math.floor(
+      seconds /
+      60,
+    )
 
-  const remaining =
-    seconds -
-    minutes * 60
-
-  return `${minutes}m ${remaining.toFixed(1)}s`
+  return (
+    `${minutes}m ` +
+    `${(
+      seconds -
+      minutes *
+      60
+    ).toFixed(
+      1,
+    )}s`
+  )
 }
 
 
-// ============================================================
-// COMPONENT
-// ============================================================
+type MapMode =
+  'track' |
+  'satellite'
+
 
 export function SessionViewer(
   {
     session,
   }:
   {
-    session: ParsedSession
+    session:
+      ParsedSession
   },
-)
-{
-  // ----------------------------------------------------------
-  // SELECTED LAP
-  // ----------------------------------------------------------
-
+) {
   const [
-    selectedLapNumber,
-    setSelectedLapNumber,
+    selectedLapNumbers,
+    setSelectedLapNumbers,
   ] =
-    useState<number | undefined>(
-      session.laps[0]?.lapNumber,
+    useState<
+      number[]
+    >(
+      () =>
+        session.laps.map(
+          lap =>
+            lap.lapNumber,
+        ),
     )
 
-
-  // ----------------------------------------------------------
-  // TELEMETRY CHANNEL
-  // ----------------------------------------------------------
 
   const [
     channel,
     setChannel,
   ] =
-    useState('Speed')
+    useState(
+      'Speed',
+    )
 
 
-  // ----------------------------------------------------------
-  // FIND SELECTED LAP
-  // ----------------------------------------------------------
+  const [
+    mapMode,
+    setMapMode,
+  ] =
+    useState<
+      MapMode
+    >(
+      'track',
+    )
 
-  const selectedLap =
-    useMemo<Lap | undefined>(
+
+  const bestLap =
+    useMemo<
+      Lap |
+      undefined
+    >(
       () =>
-        session.laps.find(
+        session.laps.length >
+        0
+          ? session.laps.reduce(
+              (
+                best,
+                current,
+              ) =>
+                current.lapTimeSeconds <
+                best.lapTimeSeconds
+                  ? current
+                  : best,
+            )
+          : undefined,
+
+      [
+        session.laps,
+      ],
+    )
+
+
+  const selectedLaps =
+    useMemo(
+      () =>
+        session.laps.filter(
           lap =>
-            lap.lapNumber ===
-            selectedLapNumber,
+            selectedLapNumbers.includes(
+              lap.lapNumber,
+            ),
         ),
 
       [
-        selectedLapNumber,
         session.laps,
+        selectedLapNumbers,
       ],
     )
 
-
-  // ----------------------------------------------------------
-  // FIND BEST LAP
-  // ----------------------------------------------------------
-
-  const bestLap =
-    useMemo<Lap | undefined>(
-      () =>
-      {
-        if (
-          session.laps.length === 0
-        )
-        {
-          return undefined
-        }
-
-        return session.laps.reduce(
-          (
-            fastest,
-            current,
-          ) =>
-            current.lapTimeSeconds <
-            fastest.lapTimeSeconds
-              ? current
-              : fastest,
-        )
-      },
-
-      [
-        session.laps,
-      ],
-    )
-
-
-  // ==========================================================
-  // UI
-  // ==========================================================
 
   return (
     <Stack spacing={2}>
 
-      {/* ======================================================
-          SESSION HEADER
-          ====================================================== */}
-
-      <div>
-
-        <Stack
-          direction={{
-            xs: 'column',
-            sm: 'row',
-          }}
-          gap={1}
-          alignItems={{
-            sm: 'center',
-          }}
-        >
-
-          <Typography
-            variant="h4"
-            fontWeight={800}
-          >
-            {session.trackName}
-          </Typography>
-
-
-          <Chip
-            label={session.filename}
-            size="small"
-          />
-
-
-          <Chip
-            label={
-              `${(
-                1 /
-                session.samplePeriod
-              ).toFixed(0)} Hz`
-            }
-            size="small"
-            color="info"
-          />
-
-        </Stack>
-
-
+      <Stack
+        direction={{
+          xs:
+            'column',
+          md:
+            'row',
+        }}
+        gap={1}
+        alignItems={{
+          md:
+            'center',
+        }}
+      >
         <Typography
-          variant="body2"
-          color="text.secondary"
+          variant="h4"
+          fontWeight={800}
         >
-          {session.samples.length.toLocaleString()}
-          {' samples · '}
-
-          {formatDuration(
-            session.durationSeconds,
-          )}
-
-          {' · max '}
-
-          {session.maxSpeedKmh.toFixed(1)}
-          {' km/h'}
+          {session.trackName}
         </Typography>
 
-      </div>
+        <Chip
+          label={
+            session.filename
+          }
+          size="small"
+        />
+
+        <Chip
+          label={
+            `${(
+              1 /
+              session.samplePeriod
+            ).toFixed(
+              0,
+            )} Hz`
+          }
+          size="small"
+          color="info"
+        />
+
+        <Chip
+          label={
+            `${session.laps.length} complete laps`
+          }
+          size="small"
+          color={
+            session.laps.length >
+            0
+              ? 'success'
+              : 'warning'
+          }
+        />
+
+        {session.timingReference &&
+          (
+            <Chip
+              label="VBOX timing line"
+              size="small"
+              variant="outlined"
+            />
+          )}
+      </Stack>
 
 
-      {/* ======================================================
-          MAIN VIEW
-          ====================================================== */}
+      <Typography
+        variant="body2"
+        color="text.secondary"
+      >
+        {session.samples.length.toLocaleString()}
+        {' samples · '}
+        {formatDuration(
+          session.durationSeconds,
+        )}
+        {' · max '}
+        {session.maxSpeedKmh.toFixed(
+          1,
+        )}
+        {' km/h · '}
+        {selectedLapNumbers.length}
+        {' laps selected'}
+      </Typography>
+
+
+      {bestLap &&
+        (
+          <Card variant="outlined">
+            <CardContent>
+              <Stack
+                direction={{
+                  xs:
+                    'column',
+                  sm:
+                    'row',
+                }}
+                gap={3}
+              >
+                <Box>
+                  <Typography
+                    variant="overline"
+                    color="text.secondary"
+                  >
+                    Best lap
+                  </Typography>
+
+                  <Typography
+                    variant="h4"
+                    fontWeight={800}
+                  >
+                    {formatLapTime(
+                      bestLap.lapTimeSeconds,
+                    )}
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography
+                    variant="overline"
+                    color="text.secondary"
+                  >
+                    Lap
+                  </Typography>
+
+                  <Typography
+                    variant="h5"
+                    fontWeight={700}
+                  >
+                    {bestLap.lapNumber}
+                  </Typography>
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
+        )}
+
 
       <Grid
         container
         spacing={2}
       >
 
-        {/* ====================================================
-            LAP LIST
-            ==================================================== */}
-
         <Grid
           size={{
-            xs: 12,
-            lg: 3,
+            xs:
+              12,
+            lg:
+              3,
           }}
         >
-
           <Card variant="outlined">
-
             <CardContent>
 
               <Typography
@@ -253,161 +345,161 @@ export function SessionViewer(
               </Typography>
 
 
-              {session.laps.length === 0
-                ? (
-                  <Typography
-                    color="text.secondary"
-                    variant="body2"
-                  >
-                    No laps were detected.
-
-                    The complete GPS trace
-                    and telemetry are still
-                    available.
-                  </Typography>
-                )
-                : (
-                  <List disablePadding>
-
-                    {session.laps.map(
-                      lap =>
-                        (
-                          <ListItemButton
-                            key={
-                              lap.lapNumber
-                            }
-                            selected={
-                              lap.lapNumber ===
-                              selectedLapNumber
-                            }
-                            onClick={
-                              () =>
-                                setSelectedLapNumber(
-                                  lap.lapNumber,
-                                )
-                            }
-                            sx={{
-                              borderRadius: 1,
-                            }}
-                          >
-
-                            <ListItemText
-                              primary={
-                                `Lap ${lap.lapNumber}`
-                              }
-                              secondary={
-                                `${formatLapTime(
-                                  lap.lapTimeSeconds,
-                                )} · ${lap.maxSpeedKmh.toFixed(
-                                  1,
-                                )} km/h`
-                              }
-                            />
-
-
-                            {bestLap?.lapNumber ===
-                              lap.lapNumber && (
-                              <Chip
-                                size="small"
-                                label="BEST"
-                                color="success"
-                              />
-                            )}
-
-                          </ListItemButton>
-                        ),
-                    )}
-
-                  </List>
-                )}
-
-
-              <Divider
-                sx={{
-                  my: 2,
-                }}
+              <LapSelector
+                laps={
+                  session.laps
+                }
+                selectedLapNumbers={
+                  selectedLapNumbers
+                }
+                onSelectionChange={
+                  setSelectedLapNumbers
+                }
               />
 
-
-              <ListItemButton
-                selected={
-                  selectedLapNumber ===
-                  undefined
-                }
-                onClick={
-                  () =>
-                    setSelectedLapNumber(
-                      undefined,
-                    )
-                }
-                sx={{
-                  borderRadius: 1,
-                }}
-              >
-
-                <ListItemText
-                  primary="Full session"
-                />
-
-              </ListItemButton>
-
             </CardContent>
-
           </Card>
-
         </Grid>
 
 
-        {/* ====================================================
-            MAP + TELEMETRY
-            ==================================================== */}
-
         <Grid
           size={{
-            xs: 12,
-            lg: 9,
+            xs:
+              12,
+            lg:
+              9,
           }}
         >
-
           <Stack spacing={2}>
 
             <Card variant="outlined">
-
               <CardContent>
 
-                <TrackMap
-                  session={session}
-                  selectedLap={
-                    selectedLap
-                  }
-                />
+                <Stack
+                  direction={{
+                    xs:
+                      'column',
+                    sm:
+                      'row',
+                  }}
+                  justifyContent="space-between"
+                  alignItems={{
+                    sm:
+                      'center',
+                  }}
+                  gap={1}
+                  mb={2}
+                >
+                  <Typography
+                    variant="h6"
+                    fontWeight={700}
+                  >
+                    Circuit
+                  </Typography>
+
+
+                  <ToggleButtonGroup
+                    size="small"
+                    exclusive
+                    value={
+                      mapMode
+                    }
+                    onChange={
+                      (
+                        _,
+                        value:
+                          MapMode |
+                          null,
+                      ) => {
+                        if (
+                          value
+                        ) {
+                          setMapMode(
+                            value,
+                          )
+                        }
+                      }
+                    }
+                  >
+                    <ToggleButton
+                      value="track"
+                    >
+                      <MapIcon
+                        sx={{
+                          mr:
+                            0.5,
+                        }}
+                      />
+                      Track
+                    </ToggleButton>
+
+                    <ToggleButton
+                      value="satellite"
+                    >
+                      <SatelliteAltIcon
+                        sx={{
+                          mr:
+                            0.5,
+                        }}
+                      />
+                      Satellite
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                </Stack>
+
+
+                {mapMode ===
+                  'track'
+                  ? (
+                    <TrackMap
+                      session={
+                        session
+                      }
+                      selectedLapNumbers={
+                        selectedLapNumbers
+                      }
+                    />
+                  )
+                  : (
+                    <SatelliteMap
+                      session={
+                        session
+                      }
+                      selectedLapNumbers={
+                        selectedLapNumbers
+                      }
+                    />
+                  )}
 
               </CardContent>
-
             </Card>
 
 
             <Card variant="outlined">
-
               <CardContent>
 
                 <TelemetryChart
-                  session={session}
-                  selectedLap={
-                    selectedLap
+                  session={
+                    session
                   }
-                  channel={channel}
+                  selectedLap={
+                    selectedLaps.length ===
+                    1
+                      ? selectedLaps[0]
+                      : undefined
+                  }
+                  channel={
+                    channel
+                  }
                   onChannelChange={
                     setChannel
                   }
                 />
 
               </CardContent>
-
             </Card>
 
           </Stack>
-
         </Grid>
 
       </Grid>
