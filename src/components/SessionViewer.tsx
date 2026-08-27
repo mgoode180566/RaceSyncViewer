@@ -139,6 +139,19 @@ export function SessionViewer(
     )
 
 
+  // Absolute sample index currently highlighted by the telemetry graph.
+  // The same index is consumed by both the offline circuit map and
+  // the Google satellite map.
+  const [
+    cursorSampleIndex,
+    setCursorSampleIndex,
+  ] =
+    useState<
+      number |
+      undefined
+    >()
+
+
   const bestLap =
     useMemo<
       Lap |
@@ -458,6 +471,9 @@ export function SessionViewer(
                       selectedLapNumbers={
                         selectedLapNumbers
                       }
+                      cursorSampleIndex={
+                        cursorSampleIndex
+                      }
                     />
                   )
                   : (
@@ -467,6 +483,9 @@ export function SessionViewer(
                       }
                       selectedLapNumbers={
                         selectedLapNumbers
+                      }
+                      cursorSampleIndex={
+                        cursorSampleIndex
                       }
                     />
                   )}
@@ -493,6 +512,12 @@ export function SessionViewer(
                   }
                   onChannelChange={
                     setChannel
+                  }
+                  onSampleHover={
+                    setCursorSampleIndex
+                  }
+                  cursorSampleIndex={
+                    cursorSampleIndex
                   }
                 />
 

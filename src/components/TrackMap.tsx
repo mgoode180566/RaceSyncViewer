@@ -41,10 +41,12 @@ export function TrackMap(
   {
     session,
     selectedLapNumbers,
+    cursorSampleIndex,
   }:
   {
     session: ParsedSession
     selectedLapNumbers: number[]
+    cursorSampleIndex?: number
   },
 ) {
   if (
@@ -221,6 +223,15 @@ export function TrackMap(
     }
 
 
+  const cursorSample =
+    cursorSampleIndex !==
+      undefined
+      ? session.samples[
+          cursorSampleIndex
+        ]
+      : undefined
+
+
   return (
     <Stack spacing={1}>
 
@@ -263,6 +274,22 @@ export function TrackMap(
               </Stack>
             ),
         )}
+
+
+        {cursorSample &&
+          (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
+              Pointer:
+              {' '}
+              {cursorSample.velocityKmh.toFixed(
+                1,
+              )}
+              {' km/h'}
+            </Typography>
+          )}
       </Stack>
 
 
@@ -337,6 +364,48 @@ export function TrackMap(
             )
           },
         )}
+
+
+        {cursorSample &&
+          (
+            <>
+              <circle
+                cx={
+                  x(
+                    cursorSample.longitude,
+                  )
+                }
+                cy={
+                  y(
+                    cursorSample.latitude,
+                  )
+                }
+                r="11"
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth="4"
+                vectorEffect="non-scaling-stroke"
+              />
+
+              <circle
+                cx={
+                  x(
+                    cursorSample.longitude,
+                  )
+                }
+                cy={
+                  y(
+                    cursorSample.latitude,
+                  )
+                }
+                r="5"
+                fill="#ffffff"
+                stroke="#000000"
+                strokeWidth="2"
+                vectorEffect="non-scaling-stroke"
+              />
+            </>
+          )}
 
       </Box>
 
