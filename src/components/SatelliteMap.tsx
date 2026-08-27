@@ -28,7 +28,7 @@ declare global {
 }
 
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyBnw6ThF33CtcHtMM5MWvj50eADsNSKZtc"
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 
 
 let googleMapsPromise:
