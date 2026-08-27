@@ -1,4 +1,5 @@
 import type {
+  DeviceSession,
   DeviceSessionsResponse,
   DeviceStatus,
 } from '../types'
@@ -11,75 +12,157 @@ const checked = async (
   response: Response,
 ) => {
   if (!response.ok) {
+    let message =
+      `RaceSync returned ${response.status} ${response.statusText}`
+
+    try {
+      const body =
+        await response.json()
+
+      if (
+        body &&
+        typeof body.error ===
+          'string'
+      ) {
+        message =
+          body.error
+      }
+    } catch {
+      // Keep the HTTP status message when the response is not JSON.
+    }
+
     throw new Error(
-      `RaceSync returned ${response.status} ${response.statusText}`,
+      message,
     )
   }
 
   return response
 }
 
-export const fetchStatus =
-  async (): Promise<DeviceStatus> => {
 
-    const response =
-      await checked(
-        await fetch(
-          `${DEVICE_BASE_URL}/api/status`,
-          {
-            cache: 'no-store',
-          },
-        ),
-      )
-
-    return response.json()
+function deviceUrl(
+  path: string,
+): string {
+  if (
+    path.startsWith(
+      'http://',
+    ) ||
+    path.startsWith(
+      'https://',
+    )
+  ) {
+    return path
   }
 
+  return (
+    `${DEVICE_BASE_URL}${path}`
+  )
+}
 
-export const fetchSessions =
-  async (): Promise<DeviceSessionsResponse> => {
 
-    const response =
-      await checked(
-        await fetch(
-          `${DEVICE_BASE_URL}/api/sessions`,
-          {
-            cache: 'no-store',
-          },
+export async function fetchStatus():
+  Promise<DeviceStatus> {
+  const response =
+    await checked(
+      await fetch(
+        deviceUrl(
+          '/api/status',
         ),
-      )
+        {
+          cache:
+            'no-store',
+        },
+      ),
+    )
 
-    return response.json()
-  }
+  return response.json()
+}
 
 
-export const downloadSession =
-  async (
-    filename: string,
-    downloadUrl?: string,
-  ): Promise<string> => {
+export async function fetchSessions():
+  Promise<DeviceSessionsResponse> {
+  const response =
+    await checked(
+      await fetch(
+        deviceUrl(
+          '/api/sessions',
+        ),
+        {
+          cache:
+            'no-store',
+        },
+      ),
+    )
 
-    let path =
-      downloadUrl ||
-      `/api/sessions/${encodeURIComponent(filename)}`
+  return response.json()
+}
 
-    // Device returns URLs such as:
-    // /api/sessions/VBOX0004.vbo
 
-    if (!path.startsWith('http')) {
-      path =
-        `${DEVICE_BASE_URL}${path}`
-    }
+export async function downloadSession(
+  session: DeviceSession,
+): Promise<string> {
+  const path =
+    session.downloadUrl ||
+    `/api/sessions/${session.id}`
 
-    const response =
-      await checked(
-        await fetch(
+  const response =
+    await checked(
+      await fetch(
+        deviceUrl(
           path,
-          {
-            cache: 'no-store',
-          },
         ),
-      )
+        {
+          cache:
+            'no-store',
+        },
+      ),
+    )
 
-    return response.text()
+  return response.text()
+}
+
+
+export type DeleteSessionResponse = {
+  deleted: boolean
+  id: number
+  file: string
+  freeBytes: number
+  usedBytes: number
+  usedPercent: number
+}
+
+
+export async function deleteSession(
+  session: DeviceSession,
+): Promise<DeleteSessionResponse> {
+  if (
+    session.deletable ===
+    false
+  ) {
+    throw new Error(
+      'This session is protected and cannot be deleted.',
+    )
   }
+
+  const path =
+    session.deleteUrl ||
+    `/api/sessions/${session.id}`
+
+  const response =
+    await checked(
+      await fetch(
+        deviceUrl(
+          path,
+        ),
+        {
+          method:
+            'DELETE',
+
+          cache:
+            'no-store',
+        },
+      ),
+    )
+
+  return response.json()
+}

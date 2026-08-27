@@ -69,11 +69,16 @@ export type DeviceStatus = {
 }
 
 export type DeviceSession = {
+  id: number
   file: string
   sizeBytes: number
   complete?: boolean
-  downloadUrl: string
+  active?: boolean
+  protected?: boolean
+  deletable?: boolean
   generatedByRaceSync?: boolean
+  downloadUrl: string
+  deleteUrl?: string
 }
 
 export type DeviceSessionsResponse = {

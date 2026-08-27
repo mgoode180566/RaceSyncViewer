@@ -154,10 +154,12 @@ export function SatelliteMap(
   {
     session,
     selectedLapNumbers,
+    cursorSampleIndex,
   }:
   {
     session: ParsedSession
     selectedLapNumbers: number[]
+    cursorSampleIndex?: number
   },
 ) {
   const containerRef =
@@ -176,6 +178,11 @@ export function SatelliteMap(
   const polylinesRef =
     useRef<any[]>(
       [],
+    )
+
+  const cursorMarkerRef =
+    useRef<any>(
+      null,
     )
 
   const [
@@ -418,6 +425,99 @@ export function SatelliteMap(
     [
       session,
       selectedLapNumbers,
+      loading,
+    ],
+  )
+
+
+  // ----------------------------------------------------------
+  // GRAPH CURSOR -> SATELLITE MAP MARKER
+  // ----------------------------------------------------------
+
+  useEffect(
+    () => {
+      const google =
+        window.google
+
+      const map =
+        mapRef.current
+
+      if (
+        !google?.maps ||
+        !map
+      ) {
+        return
+      }
+
+
+      if (
+        cursorSampleIndex ===
+        undefined
+      ) {
+        if (
+          cursorMarkerRef.current
+        ) {
+          cursorMarkerRef.current.setMap(
+            null,
+          )
+
+          cursorMarkerRef.current =
+            null
+        }
+
+        return
+      }
+
+
+      const sample =
+        session.samples[
+          cursorSampleIndex
+        ]
+
+      if (!sample) {
+        return
+      }
+
+
+      const position = {
+        lat:
+          sample.latitude,
+
+        lng:
+          sample.longitude,
+      }
+
+
+      if (
+        !cursorMarkerRef.current
+      ) {
+        cursorMarkerRef.current =
+          new google.maps.Marker(
+            {
+              map,
+              position,
+              title:
+                `${sample.velocityKmh.toFixed(1)} km/h`,
+            },
+          )
+      }
+      else {
+        cursorMarkerRef.current.setPosition(
+          position,
+        )
+
+        cursorMarkerRef.current.setMap(
+          map,
+        )
+
+        cursorMarkerRef.current.setTitle(
+          `${sample.velocityKmh.toFixed(1)} km/h`,
+        )
+      }
+    },
+    [
+      session,
+      cursorSampleIndex,
       loading,
     ],
   )
